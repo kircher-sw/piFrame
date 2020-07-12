@@ -80,5 +80,5 @@ do
   echo "$SRC_FOLDER"
   SRC_PATH=$BASE_SRC_FOLDER/$SRC_FOLDER
   
-  find "${SRC_PATH}" -iname '*.jpg' -exec bash -c 'convert "$0"' \{} \;
+  find "${SRC_PATH}" -iname '*.jpg' -exec bash -c 'blur_borders "$0"' \{} \;
 done
