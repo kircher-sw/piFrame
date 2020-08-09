@@ -33,42 +33,43 @@ BG_BLUR_INTENSITY=25
 # brightness for background image [-100..100]
 BG_BRIGHTNESS=-10
 
-# folder for temporary data (should be a tmpfs)
-TEMP_FOLDER="/tmp"
-
 
 #------------------------------------------------------------------------------
 
 
 function blur_borders {
   SRC_FILE="$1"
+  SCREEN_SIZE="$2"
+
+  echo "  $SRC_FILE  $(identify -format '%wx%h' "$SRC_FILE") -> $SCREEN_SIZE"
+
   SRC_FILE_ESCAPED=$(echo "$SRC_FILE" | sed -r 's/ /_/g')
   DEST_FILE_NAME=$(basename "$SRC_FILE_ESCAPED")
   DEST_FOLDER_NAME=$(dirname "$SRC_FILE_ESCAPED" | xargs basename)
 
+  if [[ "$DEST_FOLDER_NAME" == "auswahl" ]] || [[ "$DEST_FOLDER_NAME" == "Auswahl" ]]; then
+    DEST_FOLDER_NAME=$(dirname "$SRC_FILE_ESCAPED" | xargs dirname | xargs basename)
+  fi
+
   DEST_FILE="$DEST_FOLDER/$DEST_FOLDER_NAME/$DEST_FILE_NAME"
 
-  FG_FILE="$TEMP_FOLDER/fg.jpg"
-  BG_FILE="$TEMP_FOLDER/bg.jpg"
-  
   mkdir -p $DEST_FOLDER/$DEST_FOLDER_NAME
 
-  echo "  $SRC_FILE  $(identify -format '%wx%h' "$SRC_FILE")"
-
-  # resize image to fit entirely into screen
-  convert "$SRC_FILE" -auto-orient -resize "${MAX_WIDTH}x${MAX_HEIGHT}" "$FG_FILE"
-  
-  # scale and blur background image to fill the screen
-  convert "$SRC_FILE" -auto-orient -resize "${MAX_WIDTH}x${MAX_HEIGHT}^" -blur 0x${BG_BLUR_INTENSITY} -brightness-contrast $BG_BRIGHTNESS "$BG_FILE"  
-  
-  # compose foreground over background image and crop overflow borders
-  convert -gravity center -composite "$BG_FILE" "$FG_FILE" -crop "${MAX_WIDTH}x${MAX_HEIGHT}+0+0" "$DEST_FILE"
+  # read image into memory
+  # blur and scale-to-fill background image
+  # scale-to-fit foreground image
+  # compose background and foreground and crop overflow borders
+  convert \
+    \( "$SRC_FILE" -auto-orient -write mpr:tmp0 +delete \) \
+    \( mpr:tmp0 -resize "${SCREEN_SIZE}^" -blur 0x${BG_BLUR_INTENSITY} -brightness-contrast $BG_BRIGHTNESS \) \
+    \( mpr:tmp0 -resize "${SCREEN_SIZE}" \) \
+    -gravity center -composite -crop "${SCREEN_SIZE}+0+0" "$DEST_FILE"
 }
+
 
 
 export -f blur_borders
 export DEST_FOLDER
-export TEMP_FOLDER
 export MAX_WIDTH
 export MAX_HEIGHT
 export BG_BLUR_INTENSITY
@@ -80,5 +81,7 @@ do
   echo "$SRC_FOLDER"
   SRC_PATH=$BASE_SRC_FOLDER/$SRC_FOLDER
   
-  find "${SRC_PATH}" -iname '*.jpg' -exec bash -c 'blur_borders "$0"' \{} \;
+  find "${SRC_PATH}" -iname '*.jpg' -print0 | xargs -0 -n 1 -P 8 -I {} $SHELL -c '
+    blur_borders "$@" "${MAX_WIDTH}x${MAX_HEIGHT}"
+  ' _ {}
 done
