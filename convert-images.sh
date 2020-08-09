@@ -9,17 +9,17 @@
 
 #------------------------------------------------------------------------------
 
-# Common root folder of source images
-BASE_SRC_FOLDER="/media/Pictures"
+# Common root directory with images to convert
+SRC_BASE_DIR="/media//Pictures"
 
-# list of subfolder names contained in $BASE_SRC_FOLDER with source images
-declare -a SRC_FOLDERS=(
+# list of subfolder names contained in $SRC_BASE_DIR with source images
+declare -a SRC_SUB_DIRS=(
   "2018-05 Pictures1" 
   "2019-08 Pictures2" 
 )
 
 # destination image folder
-DEST_FOLDER="/media/ramdisk/Pictures"
+DEST_DIR="/media/ramdisk/Pictures"
 
 # height of target screen
 MAX_WIDTH=1280
@@ -45,15 +45,11 @@ function blur_borders {
 
   SRC_FILE_ESCAPED=$(echo "$SRC_FILE" | sed -r 's/ /_/g')
   DEST_FILE_NAME=$(basename "$SRC_FILE_ESCAPED")
-  DEST_FOLDER_NAME=$(dirname "$SRC_FILE_ESCAPED" | xargs basename)
+  DEST_DIR_NAME=$(dirname "$SRC_FILE_ESCAPED" | xargs basename)
 
-  if [[ "$DEST_FOLDER_NAME" == "auswahl" ]] || [[ "$DEST_FOLDER_NAME" == "Auswahl" ]]; then
-    DEST_FOLDER_NAME=$(dirname "$SRC_FILE_ESCAPED" | xargs dirname | xargs basename)
-  fi
+  DEST_FILE="$DEST_DIR/$DEST_DIR_NAME/$DEST_FILE_NAME"
 
-  DEST_FILE="$DEST_FOLDER/$DEST_FOLDER_NAME/$DEST_FILE_NAME"
-
-  mkdir -p $DEST_FOLDER/$DEST_FOLDER_NAME
+  mkdir -p $DEST_DIR/$DEST_DIR_NAME
 
   # read image into memory
   # blur and scale-to-fill background image
@@ -69,17 +65,17 @@ function blur_borders {
 
 
 export -f blur_borders
-export DEST_FOLDER
+export DEST_DIR
 export MAX_WIDTH
 export MAX_HEIGHT
 export BG_BLUR_INTENSITY
 export BG_BRIGHTNESS
 
 
-for SRC_FOLDER in "${SRC_FOLDERS[@]}"
+for SRC_SUB_DIR in "${SRC_SUB_DIRS[@]}"
 do
-  echo "$SRC_FOLDER"
-  SRC_PATH=$BASE_SRC_FOLDER/$SRC_FOLDER
+  echo "$SRC_SUB_DIR"
+  SRC_PATH=$SRC_BASE_DIR/$SRC_SUB_DIR
   
   find "${SRC_PATH}" -iname '*.jpg' -print0 | xargs -0 -n 1 -P 8 -I {} $SHELL -c '
     blur_borders "$@" "${MAX_WIDTH}x${MAX_HEIGHT}"
