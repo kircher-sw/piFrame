@@ -22,10 +22,10 @@ declare -a SRC_SUB_DIRS=(
 DEST_DIR="/media/ramdisk/Pictures"
 
 # height of target screen
-MAX_WIDTH=1280
+MAX_WIDTH=1920
 
 # width of target screen
-MAX_HEIGHT=1024
+MAX_HEIGHT=1080
 
 # blur intensity for background image
 BG_BLUR_INTENSITY=25
@@ -56,10 +56,11 @@ function blur_borders {
   # scale-to-fit foreground image
   # compose background and foreground and crop overflow borders
   convert \
-    \( "$SRC_FILE" -auto-orient -write mpr:tmp0 +delete \) \
-    \( mpr:tmp0 -resize "${SCREEN_SIZE}^" -blur 0x${BG_BLUR_INTENSITY} -brightness-contrast $BG_BRIGHTNESS \) \
-    \( mpr:tmp0 -resize "${SCREEN_SIZE}" \) \
-    -gravity center -composite -crop "${SCREEN_SIZE}+0+0" "$DEST_FILE"
+    \( "$SRC_FILE" -auto-orient -write mpr:src +delete \) \
+    \( mpr:src -resize "${SCREEN_SIZE}^" -gravity center -crop "${SCREEN_SIZE}+0+0" -write mpr:bg +delete \) \
+    \( mpr:bg -blur 0x${BG_BLUR_INTENSITY} -brightness-contrast $BG_BRIGHTNESS \) \
+    \( mpr:src -resize "${SCREEN_SIZE}>" \) \
+    -gravity center -composite "$DEST_FILE"
 }
 
 
